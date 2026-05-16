@@ -6,6 +6,13 @@ async function main() {
   const [deployer] = await ethers.getSigners();
   console.log("Deploying with:", deployer.address);
 
+  // Deploy MockWorldID (placeholder until real WorldID is ready)
+  const MockWorldID = await ethers.getContractFactory("MockWorldID");
+  const mockWorldId = await MockWorldID.deploy();
+  await mockWorldId.waitForDeployment();
+  const mockWorldIdAddress = await mockWorldId.getAddress();
+  console.log("MockWorldID deployed to:", mockWorldIdAddress);
+
   // Deploy EvidenceNFT
   const NFT = await ethers.getContractFactory("EvidenceNFT");
   const nft = await NFT.deploy();
@@ -14,10 +21,7 @@ async function main() {
   console.log("EvidenceNFT deployed to:", nftAddress);
 
   // Deploy EvidenceVault
-  const worldIdAddress = process.env.WORLD_ID_VERIFIER_ADDRESS!;
-  if (!worldIdAddress) {
-    throw new Error("WORLD_ID_VERIFIER_ADDRESS not set in .env");
-  }
+  const worldIdAddress = mockWorldIdAddress;
   
   const groupId = 1;
   const externalNullifierHash = ethers.keccak256(ethers.toUtf8Bytes("app_truthvault_upload"));
@@ -39,6 +43,7 @@ async function main() {
 
   // Write deployments.json
   const deployments = {
+    MockWorldID: mockWorldIdAddress,
     EvidenceNFT: nftAddress,
     EvidenceVault: vaultAddress,
   };

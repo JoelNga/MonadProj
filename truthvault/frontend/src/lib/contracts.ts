@@ -6,7 +6,7 @@ export const NFT_ADDRESS = (process.env.NEXT_PUBLIC_EVIDENCE_NFT_ADDRESS || "0x"
 
 export const publicClient = createPublicClient({
   chain: monadTestnet,
-  transport: http(process.env.NEXT_PUBLIC_MONAD_RPC_URL || "https://rpc.testnet.monad.xyz"),
+  transport: http(process.env.NEXT_PUBLIC_MONAD_RPC_URL || "https://testnet-rpc.monad.xyz"),
 });
 
 export const vaultAbi = [

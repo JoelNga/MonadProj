@@ -6,7 +6,7 @@ export const monadTestnet = defineChain({
   name: "Monad Testnet",
   nativeCurrency: { name: "MON", symbol: "MON", decimals: 18 },
   rpcUrls: {
-    default: { http: [process.env.NEXT_PUBLIC_MONAD_RPC_URL || "https://rpc.testnet.monad.xyz"] },
+    default: { http: [process.env.NEXT_PUBLIC_MONAD_RPC_URL || "https://testnet-rpc.monad.xyz"] },
   },
 });
 
