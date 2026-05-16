@@ -8,19 +8,25 @@ interface Props {
 }
 
 export function ZKVerifier({ onSuccess }: Props) {
-  const { zkProof, setZKProof } = useAppStore();
+  const { zkProof, setZKProof, isImmediate } = useAppStore();
   const [sessionId, setSessionId] = useState<string>("");
   const [scanned, setScanned] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (isImmediate) {
+      setZKProof({ verified: true, sessionId: "immediate", timestamp: Date.now() });
+      onSuccess?.();
+      return;
+    }
+
     const id = crypto.randomUUID();
     setSessionId(id);
     setLoading(false);
-  }, []);
+  }, [isImmediate, setZKProof, onSuccess]);
 
   useEffect(() => {
-    if (!sessionId || scanned) return;
+    if (!sessionId || scanned || isImmediate) return;
 
     const poll = setInterval(async () => {
       try {
@@ -38,13 +44,22 @@ export function ZKVerifier({ onSuccess }: Props) {
     }, 2000);
 
     return () => clearInterval(poll);
-  }, [sessionId, scanned, setZKProof, onSuccess]);
+  }, [sessionId, scanned, setZKProof, onSuccess, isImmediate]);
 
   if (zkProof) {
     return (
       <div className="flex items-center gap-2 text-green-500">
         <span className="text-xl">✓</span>
         <span className="font-medium">Verified</span>
+      </div>
+    );
+  }
+
+  if (isImmediate) {
+    return (
+      <div className="flex items-center gap-2 text-indigo-400">
+        <span className="text-xl">⚡</span>
+        <span className="font-medium">Immediate mode - no verification needed</span>
       </div>
     );
   }

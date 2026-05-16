@@ -7,19 +7,25 @@ export default function Home() {
       <p className="text-gray-400 text-lg mb-8 text-center max-w-md">
         Decentralized evidence management system with time-based disclosure and ZK identity verification.
       </p>
-      
-      <div className="flex gap-4">
-        <Link 
+
+      <div className="flex gap-4 flex-wrap justify-center">
+        <Link
           href="/upload"
           className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
         >
           Upload Evidence
         </Link>
-        <Link 
+        <Link
           href="/dashboard"
           className="px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors"
         >
           Dashboard
+        </Link>
+        <Link
+          href="/public"
+          className="px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors"
+        >
+          Public Evidence
         </Link>
       </div>
     </main>

@@ -16,22 +16,21 @@ interface IWorldID {
 
 contract EvidenceVault {
     struct EvidenceRecord {
-        bytes32  fileHash;
-        string   ipfsCID;
-        uint256  timestamp;
-        address  owner;
-        string   metadataURI;
-        bool     zkVerified;
-        uint256  lastActiveAt;
-        uint256  inactivityPeriod;
-        bool     isPublic;
-        uint256  nftTokenId;
+        uint256    timestamp;
+        address    owner;
+        string     metadataURI;
+        bool       zkVerified;
+        uint256    lastActiveAt;
+        uint256    inactivityPeriod;
+        bool       isPublic;
+        uint256    nftTokenId;
+        string     title;
+        string     description;
+        bool       isImmediate;
     }
 
-    uint256 public constant MIN_INACTIVITY = 7 days;
-    uint256 public constant MAX_INACTIVITY = 730 days;
-    uint256 public constant MAX_UPLOADS     = 10;
-
+    mapping(uint256 => bytes32[]) public recordFileHashes;
+    mapping(uint256 => string[])  public recordIpfsCIDs;
     mapping(uint256 => EvidenceRecord) public records;
     mapping(uint256 => bool)           public usedNullifiers;
     mapping(address => uint256)        public uploadCount;
@@ -42,7 +41,7 @@ contract EvidenceVault {
     uint256     public groupId;
     uint256     public externalNullifierHash;
 
-    event EvidenceRegistered(uint256 indexed id, address indexed owner, string cid);
+    event EvidenceRegistered(uint256 indexed id, address indexed owner, string title);
     event ActivityConfirmed(uint256 indexed id, uint256 timestamp);
     event EvidenceDisclosed(uint256 indexed id);
 
@@ -59,27 +58,35 @@ contract EvidenceVault {
     }
 
     function registerEvidence(
-        bytes32          fileHash,
-        string calldata  ipfsCID,
-        string calldata  metadataURI,
-        uint256          inactivityPeriod,
-        uint256          zkRoot,
-        uint256          nullifierHash,
-        uint256[8] calldata zkProof
+        bytes32[] calldata fileHashes,
+        string[] calldata  ipfsCIDs,
+        string calldata    metadataURI,
+        uint256            inactivityPeriod,
+        uint256            zkRoot,
+        uint256            nullifierHash,
+        uint256[8] calldata zkProof,
+        string calldata    title,
+        string calldata    description,
+        bool               isImmediate
     ) external returns (uint256 recordId) {
-        require(inactivityPeriod >= MIN_INACTIVITY, "EvidenceVault: inactivity period too short");
-        require(inactivityPeriod <= MAX_INACTIVITY, "EvidenceVault: inactivity period too long");
+        require(fileHashes.length > 0, "EvidenceVault: no files");
+        require(fileHashes.length == ipfsCIDs.length, "EvidenceVault: hash/cid mismatch");
+        require(inactivityPeriod >= 0, "EvidenceVault: inactivity period too short");
+        require(inactivityPeriod <= 365 days, "EvidenceVault: inactivity period too long");
         require(!usedNullifiers[nullifierHash],     "EvidenceVault: nullifier already used");
-        require(uploadCount[msg.sender] < MAX_UPLOADS, "EvidenceVault: upload quota exceeded");
+        require(uploadCount[msg.sender] < 10, "EvidenceVault: upload quota exceeded");
+        require(bytes(title).length > 0, "EvidenceVault: title required");
 
-        worldId.verifyProof(
-            zkRoot,
-            groupId,
-            uint256(keccak256(abi.encodePacked(msg.sender))),
-            nullifierHash,
-            externalNullifierHash,
-            zkProof
-        );
+        if (!isImmediate) {
+            worldId.verifyProof(
+                zkRoot,
+                groupId,
+                uint256(keccak256(abi.encodePacked(msg.sender))),
+                nullifierHash,
+                externalNullifierHash,
+                zkProof
+            );
+        }
 
         usedNullifiers[nullifierHash]  = true;
         uploadCount[msg.sender]       += 1;
@@ -88,20 +95,30 @@ contract EvidenceVault {
 
         uint256 tokenId = nftContract.mint(msg.sender, metadataURI);
 
+        for (uint256 i = 0; i < fileHashes.length; i++) {
+            recordFileHashes[recordId].push(fileHashes[i]);
+            recordIpfsCIDs[recordId].push(ipfsCIDs[i]);
+        }
+
         records[recordId] = EvidenceRecord({
-            fileHash:         fileHash,
-            ipfsCID:          ipfsCID,
             timestamp:        block.timestamp,
             owner:            msg.sender,
             metadataURI:      metadataURI,
-            zkVerified:       true,
+            zkVerified:       !isImmediate,
             lastActiveAt:     block.timestamp,
             inactivityPeriod: inactivityPeriod,
-            isPublic:         false,
-            nftTokenId:       tokenId
+            isPublic:         isImmediate,
+            nftTokenId:       tokenId,
+            title:            title,
+            description:      description,
+            isImmediate:      isImmediate
         });
 
-        emit EvidenceRegistered(recordId, msg.sender, ipfsCID);
+        emit EvidenceRegistered(recordId, msg.sender, title);
+    }
+
+    function getFileCount(uint256 recordId) external view returns (uint256) {
+        return recordFileHashes[recordId].length;
     }
 
     function confirmActivity(uint256 recordId) external {
@@ -115,7 +132,8 @@ contract EvidenceVault {
 
     function checkAndTrigger(uint256 recordId) external {
         EvidenceRecord storage rec = records[recordId];
-        if (rec.isPublic) return; // idempotent
+        if (rec.isPublic) return;
+        if (rec.isImmediate) return;
 
         require(
             block.timestamp > rec.lastActiveAt + rec.inactivityPeriod,

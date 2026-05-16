@@ -13,12 +13,12 @@ const steps = ["Connect", "Verify", "Upload", "Encrypt", "Register"];
 
 export default function UploadPage() {
   const isConnected = useIsConnected();
-  const { zkProof, encryptionKey, ipfsCID, txHash, file } = useAppStore();
+  const { zkProof, encryptionKeys, ipfsCIDs, txHash, files, isImmediate } = useAppStore();
   const [error, setError] = useState<string>("");
   const [successData, setSuccessData] = useState<{
     txHash: string;
-    ipfsCID: string;
-    encryptionKey: string;
+    ipfsCIDs: string[];
+    encryptionKeys: string[];
     recordId: string;
     nftTokenId: string;
   } | null>(null);
@@ -26,9 +26,9 @@ export default function UploadPage() {
   const getCurrentStep = () => {
     if (successData) return 4;
     if (txHash) return 4;
-    if (ipfsCID) return 3;
-    if (encryptionKey) return 2;
-    if (zkProof) return 1;
+    if (ipfsCIDs.length > 0) return 3;
+    if (encryptionKeys.length > 0) return 2;
+    if (zkProof || isImmediate) return 1;
     if (isConnected) return 0;
     return -1;
   };
@@ -40,8 +40,8 @@ export default function UploadPage() {
       <main className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-8">
         <SuccessConfirmation
           txHash={successData.txHash}
-          ipfsCID={successData.ipfsCID}
-          encryptionKey={successData.encryptionKey}
+          ipfsCIDs={successData.ipfsCIDs}
+          encryptionKeys={successData.encryptionKeys}
           recordId={successData.recordId}
           nftTokenId={successData.nftTokenId}
         />
@@ -86,21 +86,21 @@ export default function UploadPage() {
           <WalletConnector />
         </section>
 
-        {isConnected && (
+        {isConnected && !isImmediate && (
           <section className="flex flex-col items-center gap-4">
             <h2 className="text-xl font-semibold">2. Verify Identity</h2>
             <ZKVerifier />
           </section>
         )}
 
-        {zkProof && (
+        {isConnected && (
           <section className="flex flex-col items-center gap-4">
-            <h2 className="text-xl font-semibold">3. Upload & Encrypt</h2>
+            <h2 className="text-xl font-semibold">{isImmediate ? "2" : "3"}. Upload & Encrypt</h2>
             <EvidenceUploader
               onSuccess={data => setSuccessData({
                 txHash: data.txHash,
-                ipfsCID: ipfsCID || "",
-                encryptionKey: encryptionKey || "",
+                ipfsCIDs: ipfsCIDs,
+                encryptionKeys: encryptionKeys,
                 recordId: data.recordId,
                 nftTokenId: data.nftTokenId,
               })}
