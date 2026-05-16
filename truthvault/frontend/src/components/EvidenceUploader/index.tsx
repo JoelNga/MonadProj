@@ -131,24 +131,29 @@ export function EvidenceUploader({ onSuccess }: Props) {
       setMetadataURI(uri);
 
       const proof = zkProof as any;
+      const nullifierHash = isImmediate
+        ? BigInt("0x" + crypto.randomUUID().replace(/-/g, "").slice(0, 64))
+        : BigInt(proof?.nullifier_hash || 0);
 
       const txHash = await registerEvidence({
         fileHashes,
         ipfsCIDs,
         metadataURI: uri,
         inactivityPeriod: BigInt(inactivityPeriod),
-        zkRoot: BigInt(proof?.merkle_root || 0),
-        nullifierHash: BigInt(proof?.nullifier_hash || 0),
-        zkProof: [
-          BigInt(proof?.proof_a?.[0] || 0),
-          BigInt(proof?.proof_a?.[1] || 0),
-          BigInt(proof?.proof_b?.[0]?.[0] || 0),
-          BigInt(proof?.proof_b?.[0]?.[1] || 0),
-          BigInt(proof?.proof_b?.[1]?.[0] || 0),
-          BigInt(proof?.proof_b?.[1]?.[1] || 0),
-          BigInt(proof?.proof_c?.[0] || 0),
-          BigInt(proof?.proof_c?.[1] || 0),
-        ],
+        zkRoot: isImmediate ? 0n : BigInt(proof?.merkle_root || 0),
+        nullifierHash,
+        zkProof: isImmediate
+          ? [0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n]
+          : [
+              BigInt(proof?.proof_a?.[0] || 0),
+              BigInt(proof?.proof_a?.[1] || 0),
+              BigInt(proof?.proof_b?.[0]?.[0] || 0),
+              BigInt(proof?.proof_b?.[0]?.[1] || 0),
+              BigInt(proof?.proof_b?.[1]?.[0] || 0),
+              BigInt(proof?.proof_b?.[1]?.[1] || 0),
+              BigInt(proof?.proof_c?.[0] || 0),
+              BigInt(proof?.proof_c?.[1] || 0),
+            ],
         title,
         description,
         isImmediate,

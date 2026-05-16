@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { publicClient, VAULT_ADDRESS, vaultAbi } from "@/lib/contracts";
+import { publicClient, VAULT_ADDRESS, vaultAbi, delay } from "@/lib/contracts";
 import { ipfsGatewayUrl } from "@/lib/ipfs";
 
 interface PublicRecord {
@@ -25,14 +25,22 @@ export default function PublicPage() {
   useEffect(() => {
     const fetchPublicRecords = async () => {
       try {
+        await delay(1000);
         const count = await publicClient.readContract({
           address: VAULT_ADDRESS,
           abi: vaultAbi,
           functionName: "recordCount",
         }) as bigint;
 
+        const total = Number(count);
+        if (total === 0) {
+          setLoading(false);
+          return;
+        }
+
         const fetched: PublicRecord[] = [];
-        for (let i = 0; i < Number(count); i++) {
+        for (let i = 0; i < total; i++) {
+          await delay(800);
           const record = await publicClient.readContract({
             address: VAULT_ADDRESS,
             abi: vaultAbi,
@@ -41,6 +49,7 @@ export default function PublicPage() {
           }) as any;
 
           if (record[6]) {
+            await delay(800);
             const fileCount = await publicClient.readContract({
               address: VAULT_ADDRESS,
               abi: vaultAbi,
@@ -50,6 +59,7 @@ export default function PublicPage() {
 
             const ipfsCIDs: string[] = [];
             for (let j = 0; j < Number(fileCount); j++) {
+              await delay(800);
               const cid = await publicClient.readContract({
                 address: VAULT_ADDRESS,
                 abi: vaultAbi,
@@ -71,10 +81,6 @@ export default function PublicPage() {
               zkVerified: record[3],
               nftTokenId: record[7],
             });
-          }
-
-          if (i < Number(count) - 1) {
-            await new Promise(r => setTimeout(r, 500));
           }
         }
 

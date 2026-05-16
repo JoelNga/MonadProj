@@ -6,8 +6,15 @@ export const NFT_ADDRESS = (process.env.NEXT_PUBLIC_EVIDENCE_NFT_ADDRESS || "0x"
 
 export const publicClient = createPublicClient({
   chain: monadTestnet,
-  transport: http(process.env.NEXT_PUBLIC_MONAD_RPC_URL || "https://testnet-rpc.monad.xyz"),
+  transport: http(process.env.NEXT_PUBLIC_MONAD_RPC_URL || "https://testnet-rpc.monad.xyz", {
+    retryCount: 3,
+    retryDelay: 2000,
+  }),
 });
+
+export async function delay(ms: number) {
+  return new Promise(r => setTimeout(r, ms));
+}
 
 export const vaultAbi = [
   {

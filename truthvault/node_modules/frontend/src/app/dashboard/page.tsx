@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ActivityReminder } from "@/components/ActivityReminder";
 import { useAppStore, EvidenceRecord } from "@/store/useAppStore";
-import { publicClient, VAULT_ADDRESS, vaultAbi, checkAndTrigger } from "@/lib/contracts";
+import { publicClient, VAULT_ADDRESS, vaultAbi, checkAndTrigger, delay } from "@/lib/contracts";
 import { ipfsGatewayUrl } from "@/lib/ipfs";
 
 export default function DashboardPage() {
@@ -15,14 +15,23 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchRecords = async () => {
       try {
+        await delay(1000);
         const count = await publicClient.readContract({
           address: VAULT_ADDRESS,
           abi: vaultAbi,
           functionName: "recordCount",
         }) as bigint;
 
+        const total = Number(count);
+        if (total === 0) {
+          setRecords([]);
+          setLoading(false);
+          return;
+        }
+
         const fetchedRecords: EvidenceRecord[] = [];
-        for (let i = 0; i < Number(count); i++) {
+        for (let i = 0; i < total; i++) {
+          await delay(800);
           const record = await publicClient.readContract({
             address: VAULT_ADDRESS,
             abi: vaultAbi,
@@ -30,6 +39,7 @@ export default function DashboardPage() {
             args: [BigInt(i)],
           }) as any;
 
+          await delay(800);
           const fileCount = await publicClient.readContract({
             address: VAULT_ADDRESS,
             abi: vaultAbi,
@@ -39,6 +49,7 @@ export default function DashboardPage() {
 
           const ipfsCIDs: string[] = [];
           for (let j = 0; j < Number(fileCount); j++) {
+            await delay(800);
             const cid = await publicClient.readContract({
               address: VAULT_ADDRESS,
               abi: vaultAbi,
@@ -63,10 +74,6 @@ export default function DashboardPage() {
             description: record[9],
             isImmediate: record[10],
           });
-
-          if (i < Number(count) - 1) {
-            await new Promise(r => setTimeout(r, 500));
-          }
         }
 
         setRecords(fetchedRecords);
@@ -86,6 +93,7 @@ export default function DashboardPage() {
     try {
       setTriggering(recordId);
       await checkAndTrigger(BigInt(recordId));
+      await delay(2000);
       const record = await publicClient.readContract({
         address: VAULT_ADDRESS,
         abi: vaultAbi,
@@ -147,7 +155,7 @@ export default function DashboardPage() {
 
                 <div>
                   <p className="text-gray-400">Inactivity Period</p>
-                  <p>{record.isImmediate ? "N/A" : `${Number(record.inactivityPeriod) / 86400} days`}</p>
+                  <p>{record.isImmediate ? "N/A" : `${Number(record.inactivityPeriod)} seconds`}</p>
                 </div>
 
                 <div>
