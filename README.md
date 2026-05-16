@@ -1,2 +1,2 @@
 # MonadProj
-Monad hackathon prohject
+Monad hackathon project

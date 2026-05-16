@@ -1,0 +1,17 @@
+{
+  "name": "truthvault",
+  "private": true,
+  "workspaces": [
+    "contracts",
+    "frontend"
+  ],
+  "scripts": {
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "dev:node": "npm run node --workspace=contracts",
+    "deploy:local": "npm run deploy:local --workspace=contracts",
+    "dev": "concurrently \"npm run dev:node\" \"npm run dev:frontend\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
